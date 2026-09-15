@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christian Fernández | NeoBank Core Architecture</title>
+    <style>
+        :root {
+            --bg-dark: #050505;
+            --surface: #111111;
+            --border: #2a2a2a;
+            --text-main: #ededed;
+            --text-muted: #888888;
+            --accent: #ffffff;
+            --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* Utilidad para la animación por Scroll controlada por JS */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+
+        /* Cabecera humana y directa */
+        header { margin-bottom: 80px; }
+        
+        .author-tag {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 600;
+            letter-spacing: -1.5px;
+            color: var(--accent);
+            line-height: 1.1;
+            margin-bottom: 24px;
+        }
+
+        .pitch {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 700px;
+            font-weight: 400;
+        }
+
+        /* Consola interactiva */
+        .terminal {
+            background: #0a0a0a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 60px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .terminal-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #333; }
+        .dot:nth-child(1) { background: #ff5f56; }
+        .dot:nth-child(2) { background: #ffbd2e; }
+        .dot:nth-child(3) { background: #27c93f; }
+
+        .cmd-line { margin-bottom: 8px; color: var(--text-muted); }
+        .cmd-line span.prompt { color: #27c93f; margin-right: 8px; }
+        .cmd-line span.command { color: #ededed; }
+        .cmd-response { color: #4facfe; margin-bottom: 16px; padding-left: 16px; border-left: 2px solid #222;}
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        /* Grid de módulos interactivo */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 80px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 32px;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .card:hover {
+            border-color: #555;
+            transform: translateY(-4px);
+            background: #151515;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .tech-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: #000;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: #aaa;
+        }
+
+        .card p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Tarjeta especial para Negocio (Destacada) */
+        .business-card {
+            background: linear-gradient(180deg, #111, #0a0a0a);
+            border: 1px solid #333;
+            padding: 40px;
+            border-radius: 8px;
+            margin-bottom: 80px;
+        }
+
+        .business-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        .business-card ul {
+            list-style: none;
+            margin-top: 24px;
+        }
+
+        .business-card li {
+            position: relative;
+            padding-left: 24px;
+            margin-bottom: 16px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .business-card li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #4facfe;
+            font-family: var(--font-mono);
+        }
+
+        .business-card li strong {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        footer {
+            text-align: center;
+            padding-top: 40px;
+            border-top: 1px solid var(--border);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="reveal">
+            <span class="author-tag">Defensa Intermodular | 2º DAM</span>
+            <h1>NeoBank Core.</h1>
+            <p class="pitch">
+                Mi objetivo con este proyecto no es entregar una aplicación escolar. He diseñado un sistema distribuido transaccional real. Un motor backend agnóstico que soporta lógicas financieras críticas, aislando el dominio de negocio de las interfaces visuales mediante Arquitectura Hexagonal.
+            </p>
+        </header>
+
+        <div class="terminal reveal">
+            <div class="terminal-header">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <div class="cmd-line"><span class="prompt">~</span><span class="command">./init_architecture.sh --env=production</span></div>
+            <div class="cmd-response">
+                > Bootstrapping Spring Boot core... OK<br>
+                > Connecting to PostgreSQL (ACID constraints active)... OK<br>
+                > Exposing REST API via Swagger... OK
+            </div>
+            <div class="cmd-line"><span class="prompt">~</span><span class="command">check_clients status</span></div>
+            <div class="cmd-response" style="color: var(--text-muted);">
+                [Client 1] Mobile Native (Kotlin) -> CONNECTED (Async)<br>
+                [Client 2] Desktop Backoffice (JavaFX) -> CONNECTED (Admin Role)<br>
+                [Client 3] ERP Integration (Odoo) -> STANDBY (Webhook ready)
+            </div>
+        </div>
+
+        <h2 class="reveal">Mapeo Tecnológico Curricular</h2>
+        <div class="grid">
+            <div class="card reveal">
+                <div class="card-header">
+                    <h3>Acceso a Datos</h3>
+                    <span class="tech-badge">PostgreSQL / Flyway</span>
+                </div>
+                <p>El dinero no perdona fallos. Implementación de base de datos relacional con control estricto de transacciones (ACID). Versionado de esquema automatizado mediante Flyway para despliegues seguros.</p>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-header">
+                    <h3>Serv. y Procesos</h3>
+                    <span class="tech-badge">Spring Boot / JWT</span>
+                </div>
+                <p>El núcleo seguro. Autenticación stateless y delegación de tareas pesadas (auditorías, logs) a hilos secundarios concurrentes para no bloquear el Event Loop principal del servidor.</p>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-header">
+                    <h3>Dispositivos Móviles</h3>
+                    <span class="tech-badge">Kotlin / Retrofit</span>
+                </div>
+                <p>El cliente móvil es totalmente "estúpido". No calcula saldos ni procesa lógica; se limita a consumir la API de forma asíncrona mediante corrutinas para ofrecer una UI a 60fps.</p>
+            </div>
+
+            <div class="card reveal">
+                <div class="card-header">
+                    <h3>Interfaces (Backoffice)</h3>
+                    <span class="tech-badge">JavaFX / OpenAPI</span>
+                </div>
+                <p>Panel de control administrativo para empleados. Consume los mismos endpoints que la app móvil, demostrando que la API es universal, validada mediante roles de auditor (RBAC).</p>
+            </div>
+        </div>
+
+        <h2 class="reveal">Viabilidad y Lógica de Negocio</h2>
+        <div class="business-card reveal">
+            <h3>Ingeniería Financiera (El Modelo MVP)</h3>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">
+                El sistema incluye un motor de comisiones automatizado. Cobrar no es un "botón en la pantalla", es un reto de atomicidad en el backend.
+            </p>
+            <ul>
+                <li><strong>Bloqueo Transaccional (@Transactional):</strong> Si un usuario solicita una transferencia inmediata, Java ejecuta tres operaciones en bloque: resta al emisor, suma al receptor y desvío de la comisión (1%) a la cuenta operativa del banco. Si un paso falla, se ejecuta un <em>Rollback</em> automático.</li>
+                <li><strong>Sistemas de Gestión (Odoo):</strong> Para justificar el módulo de ERP, delegamos la contabilidad. Cuando Spring Boot consolida la comisión, lanza un Webhook a Odoo para generar el apunte contable y el ticket fiscal sin ensuciar la base de datos del banco.</li>
+            </ul>
+        </div>
+
+        <footer class="reveal">
+            Architecture proposed and engineered by Christian F. López
+        </footer>
+    </div>
+
+    <!-- Script Vanilla JS para hacer la web viva (Scroll Reveal) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.15
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.reveal').forEach((el) => {
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>
